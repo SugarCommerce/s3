@@ -12,7 +12,7 @@ declare( strict_types=1 );
 
 namespace SugarCommerce\S3\Traits\Multipart;
 
-use SugarCommerce\S3\Upload;
+use SugarCommerce\S3\Models\Upload;
 use SugarCommerce\S3\Utils\Runtime;
 
 /**

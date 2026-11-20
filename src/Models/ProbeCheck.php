@@ -10,7 +10,7 @@
 
 declare( strict_types=1 );
 
-namespace SugarCommerce\S3\Probe;
+namespace SugarCommerce\S3\Models;
 
 /**
  * Enum Check
@@ -20,7 +20,7 @@ namespace SugarCommerce\S3\Probe;
  *
  * @since 1.0.0
  */
-enum Check: string {
+enum ProbeCheck: string {
 
 	/** The endpoint answers, the keys are accepted and the bucket is listed. */
 	case Reach = 'reach';

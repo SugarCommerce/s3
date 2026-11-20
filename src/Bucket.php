@@ -13,7 +13,7 @@ declare( strict_types=1 );
 namespace SugarCommerce\S3;
 
 use SugarCommerce\S3\Cors\Policy;
-use SugarCommerce\S3\Support\StorageError;
+use SugarCommerce\S3\Models\StorageError;
 use SugarCommerce\S3\Traits\Bucket\Changing;
 use SugarCommerce\S3\Traits\Bucket\Configuration;
 use SugarCommerce\S3\Traits\Bucket\Listing;

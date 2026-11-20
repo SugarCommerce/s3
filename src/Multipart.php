@@ -13,6 +13,7 @@ declare( strict_types=1 );
 namespace SugarCommerce\S3;
 
 use Closure;
+use SugarCommerce\S3\Models\Upload;
 use SugarCommerce\S3\Traits\Multipart\Records;
 use Throwable;
 use WP_Error;

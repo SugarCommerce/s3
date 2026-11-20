@@ -13,10 +13,10 @@ use PHPUnit\Framework\TestCase;
 use SugarCommerce\S3\Bucket;
 use SugarCommerce\S3\Cors\Policy;
 use SugarCommerce\S3\Cors\Rule;
+use SugarCommerce\S3\Models\ProbeCheck;
+use SugarCommerce\S3\Models\ProbeFault;
+use SugarCommerce\S3\Models\ProbeStep;
 use SugarCommerce\S3\Probe;
-use SugarCommerce\S3\Probe\Check;
-use SugarCommerce\S3\Probe\Fault;
-use SugarCommerce\S3\Probe\Step;
 use SugarCommerce\S3\Signer;
 use SugarCommerce\S3\Tests\Support\FakeHttp;
 use SugarCommerce\S3\Tests\Support\FakeS3;
@@ -73,7 +73,7 @@ final class ProbeTest extends TestCase {
 		$steps = ( new Probe() )->run( $this->bucket, [ self::ORIGIN ] );
 
 		$this->assertTrue( Probe::passed( $steps ) );
-		$this->assertSame( array_map( static fn( Check $c ) => $c->value, Check::cases() ), array_map( static fn( Step $s ) => $s->check->value, $steps ) );
+		$this->assertSame( array_map( static fn( ProbeCheck $c ) => $c->value, ProbeCheck::cases() ), array_map( static fn( ProbeStep $s ) => $s->check->value, $steps ) );
 		$this->assertSame( '', $steps[5]->note );
 		$this->assertSame( [], $this->s3->objects );
 		$this->assertSame( [], $this->s3->uploads );
@@ -106,10 +106,10 @@ final class ProbeTest extends TestCase {
 
 		$steps = ( new Probe() )->run( $this->bucket );
 
-		$this->assertSame( Fault::Secret, $steps[0]->fault );
+		$this->assertSame( ProbeFault::Secret, $steps[0]->fault );
 		$this->assertSame( 'SignatureDoesNotMatch', $steps[0]->code );
 		$this->assertStringContainsString( 'secret key does not match', $steps[0]->message );
-		$this->assertSame( Fault::Skipped, $steps[1]->fault );
+		$this->assertSame( ProbeFault::Skipped, $steps[1]->fault );
 		$this->assertCount( 1, $this->s3->log );
 		$this->assertSame( $steps[0], Probe::failure( $steps ) );
 	}
@@ -120,7 +120,7 @@ final class ProbeTest extends TestCase {
 	public function test_an_unknown_access_key_is_named(): void {
 		$this->s3->fail( static fn() => true, FakeS3::error( 403, 'InvalidAccessKeyId', 'The AWS Access Key Id you provided does not exist in our records.' ) );
 
-		$this->assertSame( Fault::Key, ( new Probe() )->run( $this->bucket )[0]->fault );
+		$this->assertSame( ProbeFault::Key, ( new Probe() )->run( $this->bucket )[0]->fault );
 	}
 
 	/**
@@ -130,7 +130,7 @@ final class ProbeTest extends TestCase {
 		$other = new Bucket( $this->bucket->signer(), 'nope' );
 		$step  = ( new Probe() )->run( $other )[0];
 
-		$this->assertSame( Fault::Missing, $step->fault );
+		$this->assertSame( ProbeFault::Missing, $step->fault );
 		$this->assertStringContainsString( '"nope"', $step->message );
 	}
 
@@ -142,7 +142,7 @@ final class ProbeTest extends TestCase {
 
 		$step = ( new Probe() )->run( $this->bucket )[0];
 
-		$this->assertSame( Fault::Elsewhere, $step->fault );
+		$this->assertSame( ProbeFault::Elsewhere, $step->fault );
 		$this->assertSame( 'eu-west-2', $step->detail );
 		$this->assertStringContainsString( 'Set the region to eu-west-2', $step->message );
 	}
@@ -164,7 +164,7 @@ final class ProbeTest extends TestCase {
 
 		$step = ( new Probe() )->run( $this->bucket )[0];
 
-		$this->assertSame( Fault::Failed, $step->fault );
+		$this->assertSame( ProbeFault::Failed, $step->fault );
 		$this->assertStringContainsString( '400', $step->message );
 	}
 
@@ -176,7 +176,7 @@ final class ProbeTest extends TestCase {
 
 		$step = ( new Probe() )->run( $this->bucket )[0];
 
-		$this->assertSame( Fault::Unreachable, $step->fault );
+		$this->assertSame( ProbeFault::Unreachable, $step->fault );
 		$this->assertStringContainsString( 'storage.example.com', $step->message );
 		$this->assertStringContainsString( 'Could not resolve host', $step->detail );
 	}
@@ -190,7 +190,7 @@ final class ProbeTest extends TestCase {
 		$steps = ( new Probe() )->run( $this->bucket );
 
 		$this->assertTrue( $steps[0]->ok() );
-		$this->assertSame( Fault::Refused, $steps[1]->fault );
+		$this->assertSame( ProbeFault::Refused, $steps[1]->fault );
 		$this->assertStringContainsString( 'may not write to the bucket "bucket"', $steps[1]->message );
 	}
 
@@ -203,8 +203,8 @@ final class ProbeTest extends TestCase {
 
 		$steps = ( new Probe() )->run( $this->bucket );
 
-		$this->assertSame( Fault::Altered, $steps[2]->fault );
-		$this->assertSame( Fault::Skipped, $steps[3]->fault );
+		$this->assertSame( ProbeFault::Altered, $steps[2]->fault );
+		$this->assertSame( ProbeFault::Skipped, $steps[3]->fault );
 		$this->assertSame( [], $this->s3->objects );
 	}
 
@@ -216,7 +216,7 @@ final class ProbeTest extends TestCase {
 
 		$step = ( new Probe() )->run( $this->bucket )[4];
 
-		$this->assertSame( Fault::Refused, $step->fault );
+		$this->assertSame( ProbeFault::Refused, $step->fault );
 		$this->assertStringContainsString( 'may not upload large files to', $step->message );
 	}
 
@@ -229,7 +229,7 @@ final class ProbeTest extends TestCase {
 
 		$step = ( new Probe() )->run( $this->bucket )[4];
 
-		$this->assertSame( Fault::Failed, $step->fault );
+		$this->assertSame( ProbeFault::Failed, $step->fault );
 		$this->assertStringContainsString( 'not cancelled', $step->message );
 	}
 
@@ -241,7 +241,7 @@ final class ProbeTest extends TestCase {
 
 		$step = ( new Probe() )->run( $this->bucket, [ self::ORIGIN ] )[5];
 
-		$this->assertSame( Fault::CorsPolicy, $step->fault );
+		$this->assertSame( ProbeFault::CorsPolicy, $step->fault );
 		$this->assertStringContainsString( 'ETag', $step->message );
 	}
 
@@ -281,7 +281,7 @@ final class ProbeTest extends TestCase {
 
 		$step = ( new Probe() )->run( $this->bucket, [ self::ORIGIN ] )[5];
 
-		$this->assertSame( Fault::CorsOrigin, $step->fault );
+		$this->assertSame( ProbeFault::CorsOrigin, $step->fault );
 		$this->assertSame( self::ORIGIN, $step->detail );
 	}
 
@@ -292,7 +292,7 @@ final class ProbeTest extends TestCase {
 		$this->bucket->set_cors( new Policy( [ new Rule( [ self::ORIGIN ], [ 'PUT' ] ) ] ) );
 		$this->hide_policy();
 
-		$this->assertSame( Fault::EtagHidden, ( new Probe() )->run( $this->bucket, [ self::ORIGIN ] )[5]->fault );
+		$this->assertSame( ProbeFault::EtagHidden, ( new Probe() )->run( $this->bucket, [ self::ORIGIN ] )[5]->fault );
 	}
 
 	/**
@@ -312,7 +312,7 @@ final class ProbeTest extends TestCase {
 	 * A step for a script carries its label and words.
 	 */
 	public function test_a_step_as_an_array(): void {
-		$array = ( new Step( Check::Write, Fault::Refused, 403, '', 'No.', '', 'AccessDenied' ) )->to_array();
+		$array = ( new ProbeStep( ProbeCheck::Write, ProbeFault::Refused, 403, '', 'No.', '', 'AccessDenied' ) )->to_array();
 
 		$this->assertSame( 'write', $array['check'] );
 		$this->assertFalse( $array['ok'] );
@@ -326,18 +326,18 @@ final class ProbeTest extends TestCase {
 	 * The fault for each status and code.
 	 */
 	public function test_faults_from_answers(): void {
-		$this->assertSame( Fault::Unreachable, Fault::of( 0, '' ) );
-		$this->assertSame( Fault::Refused, Fault::of( 403, '' ) );
-		$this->assertSame( Fault::Refused, Fault::of( 403, 'AccessDenied' ) );
-		$this->assertSame( Fault::Missing, Fault::of( 404, '' ) );
-		$this->assertSame( Fault::Missing, Fault::of( 404, 'NoSuchBucket' ) );
-		$this->assertSame( Fault::Elsewhere, Fault::of( 301, '' ) );
-		$this->assertSame( Fault::Elsewhere, Fault::of( 307, '' ) );
-		$this->assertSame( Fault::Elsewhere, Fault::of( 400, '' ) );
-		$this->assertSame( Fault::Failed, Fault::of( 400, 'InvalidArgument' ) );
-		$this->assertSame( Fault::Failed, Fault::of( 500, '' ) );
-		$this->assertSame( Fault::Key, Fault::of( 403, 'InvalidAccessKeyId' ) );
-		$this->assertSame( Fault::Secret, Fault::of( 403, 'SignatureDoesNotMatch' ) );
+		$this->assertSame( ProbeFault::Unreachable, ProbeFault::of( 0, '' ) );
+		$this->assertSame( ProbeFault::Refused, ProbeFault::of( 403, '' ) );
+		$this->assertSame( ProbeFault::Refused, ProbeFault::of( 403, 'AccessDenied' ) );
+		$this->assertSame( ProbeFault::Missing, ProbeFault::of( 404, '' ) );
+		$this->assertSame( ProbeFault::Missing, ProbeFault::of( 404, 'NoSuchBucket' ) );
+		$this->assertSame( ProbeFault::Elsewhere, ProbeFault::of( 301, '' ) );
+		$this->assertSame( ProbeFault::Elsewhere, ProbeFault::of( 307, '' ) );
+		$this->assertSame( ProbeFault::Elsewhere, ProbeFault::of( 400, '' ) );
+		$this->assertSame( ProbeFault::Failed, ProbeFault::of( 400, 'InvalidArgument' ) );
+		$this->assertSame( ProbeFault::Failed, ProbeFault::of( 500, '' ) );
+		$this->assertSame( ProbeFault::Key, ProbeFault::of( 403, 'InvalidAccessKeyId' ) );
+		$this->assertSame( ProbeFault::Secret, ProbeFault::of( 403, 'SignatureDoesNotMatch' ) );
 	}
 
 	/**

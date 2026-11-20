@@ -14,7 +14,7 @@ namespace SugarCommerce\S3\Traits\Bucket;
 
 use InvalidArgumentException;
 use SugarCommerce\S3\Bucket;
-use SugarCommerce\S3\Method;
+use SugarCommerce\S3\Models\Method;
 use SugarCommerce\S3\Signing\Endpoint;
 use SugarCommerce\S3\Support\Xml;
 use SugarCommerce\S3\Transport;

@@ -15,7 +15,7 @@ namespace SugarCommerce\S3\Tests\Cors;
 use PHPUnit\Framework\TestCase;
 use SugarCommerce\S3\Cors\Policy;
 use SugarCommerce\S3\Cors\Rule;
-use SugarCommerce\S3\Method;
+use SugarCommerce\S3\Models\Method;
 use SugarCommerce\S3\Signer;
 
 final class PolicyTest extends TestCase {

@@ -13,7 +13,7 @@ declare( strict_types=1 );
 namespace SugarCommerce\S3\Traits\Signer;
 
 use InvalidArgumentException;
-use SugarCommerce\S3\Method;
+use SugarCommerce\S3\Models\Method;
 
 /**
  * Trait Presigning

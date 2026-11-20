@@ -12,7 +12,7 @@ declare( strict_types=1 );
 
 namespace SugarCommerce\S3\Traits\Bucket;
 
-use SugarCommerce\S3\Support\StorageError;
+use SugarCommerce\S3\Models\StorageError;
 use SugarCommerce\S3\Transport;
 use WP_Error;
 

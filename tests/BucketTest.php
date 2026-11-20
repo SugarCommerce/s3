@@ -15,8 +15,8 @@ use PHPUnit\Framework\TestCase;
 use SugarCommerce\S3\Bucket;
 use SugarCommerce\S3\Cors\Policy;
 use SugarCommerce\S3\Cors\Rule;
+use SugarCommerce\S3\Models\StorageError;
 use SugarCommerce\S3\Provider;
-use SugarCommerce\S3\Support\StorageError;
 use SugarCommerce\S3\Tests\Support\FakeHttp;
 use WP_Error;
 

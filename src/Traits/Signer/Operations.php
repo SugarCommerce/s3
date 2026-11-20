@@ -14,9 +14,9 @@ namespace SugarCommerce\S3\Traits\Signer;
 
 use InvalidArgumentException;
 use SugarCommerce\S3\Cors\Policy;
-use SugarCommerce\S3\Method;
+use SugarCommerce\S3\Models\Method;
+use SugarCommerce\S3\Models\SignedRequest;
 use SugarCommerce\S3\Signing\Endpoint;
-use SugarCommerce\S3\Signing\SignedRequest;
 use SugarCommerce\S3\Validate;
 
 /**

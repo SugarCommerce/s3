@@ -220,7 +220,7 @@ killed half way loses at most the part it was sending. Hand it to
 
 ```php
 use SugarCommerce\Jobs\Scheduler;
-use SugarCommerce\S3\Upload;
+use SugarCommerce\S3\Models\Upload;
 
 $queue = Scheduler::group( 'myplugin' );
 
@@ -343,7 +343,7 @@ keys with spaces in them, an endpoint missing or malformed for MinIO.
 `verify()` then lists the bucket, writes a test object, reads it back,
 deletes it, and starts and aborts a multipart upload. A failure is
 `s3_connection_{fault}` -- `key`, `secret`, `missing`, `elsewhere`, `refused`,
-`unreachable`, `altered` and the rest of `Probe\Fault` -- with the `field` to
+`unreachable`, `altered` and the rest of `Models\ProbeFault` -- with the `field` to
 fix, the `check` that failed, its `status`, storage's `code` and every step
 in its data, and a message that says what to change: "The secret key does
 not match the access key. Paste the secret again; most providers show it
@@ -363,8 +363,8 @@ Probe::passed( $steps );               // bool
 Probe::failure( $steps )?->message;    // what to fix, translated
 
 foreach ( $steps as $step ) {
-	$step->check;    // Probe\Check::Reach | Write | Read | Delete | Multipart | Cors
-	$step->fault;    // null, or Probe\Fault::Key, Secret, Refused, Missing, Elsewhere, Altered, CorsOrigin, EtagHidden, …
+	$step->check;    // Models\ProbeCheck::Reach | Write | Read | Delete | Multipart | Cors
+	$step->fault;    // null, or Models\ProbeFault::Key, Secret, Refused, Missing, Elsewhere, Altered, CorsOrigin, EtagHidden, …
 	$step->note;     // on a pass: something worth knowing, such as checksums being off
 	$step->to_array(); // for a REST answer
 }
@@ -481,13 +481,13 @@ clear-up is one cron event; neither needs a queue either.
 ## How it is laid out
 
 The classes a plugin uses sit at the top of `src/`: `Provider`, `Signer`,
-`Bucket`, `Multipart`, `Upload`, `Connection`, `Probe`, `Account`, `Address`,
-`Transport`, `Validate` and `Method`. Beside them:
+`Bucket`, `Multipart`, `Connection`, `Probe`, `Account`, `Address`,
+`Transport` and `Validate`. Beside them:
 
+* `Models/` -- the shapes passed around: `Upload`, `SignedRequest`, `StorageError`, `Method`, and a connection test's `ProbeStep`, `ProbeCheck` and `ProbeFault`
 * `Cors/` -- a bucket's CORS policy, its rules, what they allow, and the site's origin
-* `Probe/` -- a connection test's steps (`Step`), the checks (`Check`) and what went wrong (`Fault`)
-* `Signing/` -- the parts of SigV4: endpoints and canonical paths, headers, regions, the signed request
-* `Support/` -- reading a provider's XML and its error documents
+* `Signing/` -- the parts of SigV4: endpoints and canonical paths, headers, regions, addressing
+* `Support/` -- reading a provider's XML
 * `Traits/` -- `Bucket`, `Signer` and `Multipart`, one trait per job
 * `Utils/` -- the build's prefix, for option names
 

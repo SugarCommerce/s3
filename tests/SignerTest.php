@@ -19,9 +19,9 @@ namespace SugarCommerce\S3\Tests;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use SugarCommerce\Storage\Files\ContentDisposition;
-use SugarCommerce\S3\Method;
+use SugarCommerce\S3\Models\Method;
 use SugarCommerce\S3\Signer;
+use SugarCommerce\Storage\Files\ContentDisposition;
 
 final class SignerTest extends TestCase {
 

@@ -13,8 +13,8 @@ declare( strict_types=1 );
 namespace SugarCommerce\S3\Traits\Bucket;
 
 use SugarCommerce\S3\Address;
-use SugarCommerce\S3\Method;
-use SugarCommerce\S3\Signing\SignedRequest;
+use SugarCommerce\S3\Models\Method;
+use SugarCommerce\S3\Models\SignedRequest;
 use SugarCommerce\S3\Transport;
 use Throwable;
 use WP_Error;

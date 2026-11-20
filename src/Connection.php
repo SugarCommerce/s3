@@ -13,9 +13,9 @@ declare( strict_types=1 );
 namespace SugarCommerce\S3;
 
 use InvalidArgumentException;
-use SugarCommerce\S3\Probe\Check;
-use SugarCommerce\S3\Probe\Fault;
-use SugarCommerce\S3\Probe\Step;
+use SugarCommerce\S3\Models\ProbeCheck;
+use SugarCommerce\S3\Models\ProbeFault;
+use SugarCommerce\S3\Models\ProbeStep;
 use SugarCommerce\S3\Signing\AddressingStyle;
 use WP_Error;
 
@@ -216,11 +216,11 @@ final readonly class Connection {
 			array(
 				// A bucket refused at the first request may be a name that
 				// is not there.
-				'field'  => Fault::Refused === $failure->fault && Check::Reach === $failure->check ? 'bucket' : $failure->fault->field( $this->provider ),
+				'field'  => ProbeFault::Refused === $failure->fault && ProbeCheck::Reach === $failure->check ? 'bucket' : $failure->fault->field( $this->provider ),
 				'check'  => $failure->check->value,
 				'status' => $failure->status,
 				'code'   => $failure->code,
-				'steps'  => array_map( static fn( Step $step ): array => $step->to_array(), $steps ),
+				'steps'  => array_map( static fn( ProbeStep $step ): array => $step->to_array(), $steps ),
 			)
 		);
 	}
@@ -233,7 +233,7 @@ final readonly class Connection {
 	 * @param array<int, string> $origins Origins a browser uploader runs on.
 	 * @param Probe|null         $probe   The test to run.
 	 *
-	 * @return array<int, Step>
+	 * @return array<int, ProbeStep>
 	 *
 	 * @throws InvalidArgumentException Without a bucket, or with settings
 	 *                                  problem() refuses.
@@ -327,17 +327,17 @@ final readonly class Connection {
 		$data   = (array) $buckets->get_error_data();
 		$status = (int) ( $data['status'] ?? 0 );
 		$code   = (string) ( $data['error_code'] ?? '' );
-		$fault  = Fault::of( $status, $code );
+		$fault  = ProbeFault::of( $status, $code );
 
 		// Scoped to buckets: the keys are right, and may not list them.
-		if ( Fault::Refused === $fault ) {
+		if ( ProbeFault::Refused === $fault ) {
 			return true;
 		}
 
 		$message = match ( $fault ) {
-			Fault::Unreachable => Transport::explain( $buckets->get_error_message(), 'https://' . $this->host() ),
-			Fault::Key         => __( 'Storage does not recognise this access key. Paste the access key ID again, from the API token you created.', 'sugarcommerce' ),
-			Fault::Secret      => __( 'The secret key does not match the access key. Paste the secret again; most providers show it only once, when the token is created.', 'sugarcommerce' ),
+			ProbeFault::Unreachable => Transport::explain( $buckets->get_error_message(), 'https://' . $this->host() ),
+			ProbeFault::Key         => __( 'Storage does not recognise this access key. Paste the access key ID again, from the API token you created.', 'sugarcommerce' ),
+			ProbeFault::Secret      => __( 'The secret key does not match the access key. Paste the secret again; most providers show it only once, when the token is created.', 'sugarcommerce' ),
 			default                 => sprintf(
 				/* translators: 1: an HTTP status code, 2: storage's own words. */
 				__( 'Storage answered %1$d when asked for the list of buckets. %2$s', 'sugarcommerce' ),
@@ -351,7 +351,7 @@ final readonly class Connection {
 			$message,
 			array(
 				'field'  => $fault->field( $this->provider ),
-				'check'  => Check::Reach->value,
+				'check'  => ProbeCheck::Reach->value,
 				'status' => $status,
 				'code'   => $code,
 				'steps'  => array(),

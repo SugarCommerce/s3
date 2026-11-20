@@ -12,7 +12,7 @@ declare( strict_types=1 );
 
 namespace SugarCommerce\S3\Traits\Bucket;
 
-use SugarCommerce\S3\Method;
+use SugarCommerce\S3\Models\Method;
 use SugarCommerce\S3\Signer;
 use SugarCommerce\S3\Support\Xml;
 use SugarCommerce\S3\Transport;

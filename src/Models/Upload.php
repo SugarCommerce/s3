@@ -10,7 +10,9 @@
 
 declare( strict_types=1 );
 
-namespace SugarCommerce\S3;
+namespace SugarCommerce\S3\Models;
+
+use SugarCommerce\S3\Bucket;
 
 /**
  * Class Upload

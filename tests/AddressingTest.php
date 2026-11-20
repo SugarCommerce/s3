@@ -14,7 +14,7 @@ namespace SugarCommerce\S3\Tests;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use SugarCommerce\S3\Method;
+use SugarCommerce\S3\Models\Method;
 use SugarCommerce\S3\Provider;
 use SugarCommerce\S3\Signer;
 use SugarCommerce\S3\Signing\AddressingStyle;

@@ -11,9 +11,9 @@ namespace SugarCommerce\S3\Tests;
 
 use PHPUnit\Framework\TestCase;
 use SugarCommerce\S3\Bucket;
+use SugarCommerce\S3\Models\Upload;
 use SugarCommerce\S3\Multipart;
 use SugarCommerce\S3\Signer;
-use SugarCommerce\S3\Upload;
 use SugarCommerce\S3\Tests\Support\FakeHttp;
 use SugarCommerce\S3\Tests\Support\FakeS3;
 use WP_Error;

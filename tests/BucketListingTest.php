@@ -14,11 +14,11 @@ use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use SugarCommerce\S3\Account;
 use SugarCommerce\S3\Bucket;
-use SugarCommerce\S3\Method;
+use SugarCommerce\S3\Models\Method;
+use SugarCommerce\S3\Models\StorageError;
 use SugarCommerce\S3\Provider;
 use SugarCommerce\S3\Signing\AddressingStyle;
 use SugarCommerce\S3\Signing\Endpoint;
-use SugarCommerce\S3\Support\StorageError;
 use SugarCommerce\S3\Tests\Support\FakeHttp;
 use WP_Error;
 

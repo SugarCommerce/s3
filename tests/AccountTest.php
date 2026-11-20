@@ -3,9 +3,9 @@ declare( strict_types=1 );
 
 namespace SugarCommerce\S3\Tests;
 
-use SugarCommerce\S3\Account;
-use SugarCommerce\S3\Method;
 use PHPUnit\Framework\TestCase;
+use SugarCommerce\S3\Account;
+use SugarCommerce\S3\Models\Method;
 
 /**
  * Request URLs, from an account's signer.

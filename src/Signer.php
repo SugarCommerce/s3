@@ -14,10 +14,11 @@ namespace SugarCommerce\S3;
 
 use InvalidArgumentException;
 use SugarCommerce\S3\Cors\Policy;
+use SugarCommerce\S3\Models\Method;
+use SugarCommerce\S3\Models\SignedRequest;
 use SugarCommerce\S3\Signing\AddressingStyle;
 use SugarCommerce\S3\Signing\Endpoint;
 use SugarCommerce\S3\Signing\Headers;
-use SugarCommerce\S3\Signing\SignedRequest;
 use SugarCommerce\S3\Traits\Signer\Operations;
 use SugarCommerce\S3\Traits\Signer\Presigning;
 use SugarCommerce\Storage\Files\ContentDisposition;

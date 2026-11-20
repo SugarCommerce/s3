@@ -10,20 +10,20 @@
 
 declare( strict_types=1 );
 
-namespace SugarCommerce\S3\Probe;
+namespace SugarCommerce\S3\Models;
 
 use SugarCommerce\S3\Provider;
 
 /**
  * Enum Fault
  *
- * A code as well as a sentence (Step::$message), so a caller can act on
+ * A code as well as a sentence (ProbeStep::$message), so a caller can act on
  * which it was -- point at the field to fix, say it in its own words. Each
  * names what the person who typed the settings should check.
  *
  * @since 1.0.0
  */
-enum Fault: string {
+enum ProbeFault: string {
 
 	/** Not tried, because an earlier step failed. */
 	case Skipped = 'skipped';
