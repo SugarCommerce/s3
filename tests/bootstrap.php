@@ -880,6 +880,19 @@ if ( ! function_exists( 'wp_remote_request' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_safe_remote_request' ) ) {
+	function wp_safe_remote_request( $url, $args = [] ) {
+		return FakeHttp::respond( (string) $url, (array) $args );
+	}
+}
+
+/*
+ * Every request goes through network's SafeUrl, which resolves the host
+ * first. The suite's hosts do not exist, so every name answers one public
+ * address unless a test says otherwise (Transport::resolve_with()).
+ */
+\SugarCommerce\S3\Transport::resolve_with( static fn(): array => [ '93.184.216.34' ] );
+
 if ( ! function_exists( 'wp_remote_get' ) ) {
 	function wp_remote_get( $url, $args = [] ) {
 		return FakeHttp::respond( (string) $url, (array) $args + [ 'method' => 'GET' ] );

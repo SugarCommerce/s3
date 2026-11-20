@@ -12,6 +12,7 @@ declare( strict_types=1 );
 
 namespace SugarCommerce\S3;
 
+use SugarCommerce\Network\Remote\SafeUrl;
 use SugarCommerce\S3\Models\SignedRequest;
 use WP_Error;
 
@@ -29,9 +30,72 @@ use WP_Error;
  * anything modify the headers between the two, which would invalidate the
  * signature.
  *
+ * Every request goes through network's {@see SafeUrl}, not only the
+ * endpoint as it is configured: each address is resolved and checked as it
+ * is asked, the connection is pinned to the address that passed, and no
+ * redirect is followed. A metadata service, link-local or "no address" is
+ * never reached, whatever the address. A private or loopback answer is let
+ * through for one thing only: the endpoint the owner chose -- a MinIO on the
+ * LAN, a development setup -- and a bucket's name under it. Every
+ * {@see Signer} names its endpoint here as it is built; anything else (a
+ * URL handed to {@see Probe::preflight()}, a host nobody configured) must
+ * resolve to the public internet.
+ *
  * @since 1.0.0
  */
 final class Transport {
+
+	/**
+	 * Endpoints the owner chose, host and optional port, lower-cased.
+	 *
+	 * @var array<string, true>
+	 */
+	private static array $endpoints = array();
+
+	/**
+	 * How a name is resolved, for tests: fn( string $host ): string[].
+	 * DNS when null.
+	 *
+	 * @var callable|null
+	 */
+	private static $resolver = null;
+
+	/**
+	 * Name an endpoint the owner chose, so it may be on a private network.
+	 *
+	 * {@see Signer} calls this with its endpoint. It lets a private or
+	 * loopback answer through for that host (and a bucket under it) only;
+	 * the metadata, link-local and unspecified addresses stay refused, and
+	 * the connection is still pinned.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $endpoint Normalised host, optionally with a port.
+	 *
+	 * @return void
+	 */
+	public static function allow_endpoint( string $endpoint ): void {
+		$endpoint = strtolower( trim( $endpoint ) );
+
+		if ( '' !== $endpoint ) {
+			self::$endpoints[ $endpoint ] = true;
+		}
+	}
+
+	/**
+	 * Resolve names with a function instead of DNS, or DNS again with null.
+	 *
+	 * For tests: a suite runs against hosts that do not exist.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param callable|null $resolver fn( string $host ): string[].
+	 *
+	 * @return void
+	 */
+	public static function resolve_with( ?callable $resolver ): void {
+		self::$resolver = $resolver;
+	}
 
 	/**
 	 * Send a signed request.
@@ -67,7 +131,7 @@ final class Transport {
 			)
 		);
 
-		$response = wp_remote_request( $request->url, $args );
+		$response = self::ask( $request->url, $args );
 
 		if ( is_wp_error( $response ) ) {
 			return $response;
@@ -123,7 +187,7 @@ final class Transport {
 	 * @return array{status: int, headers: array<string, string>, body: string, error: string}
 	 */
 	public static function request( string $method, string $url, array $headers = array(), ?string $body = null, array $args = array() ): array {
-		$response = wp_remote_request(
+		$response = self::ask(
 			$url,
 			array_merge(
 				array(
@@ -154,6 +218,48 @@ final class Transport {
 			'body'    => (string) wp_remote_retrieve_body( $response ),
 			'error'   => '',
 		);
+	}
+
+	/**
+	 * Ask through the guard: the owner's endpoint may be private, nothing
+	 * else may; nothing reaches metadata; no redirect is followed.
+	 *
+	 * @param string               $url  Where to send it.
+	 * @param array<string, mixed> $args For wp_remote_request(), `method`
+	 *                                   among them.
+	 *
+	 * @return array|WP_Error
+	 */
+	private static function ask( string $url, array $args ): array|WP_Error {
+		$guard = new SafeUrl( allow_private: self::is_chosen( $url ), resolver: self::$resolver );
+
+		return $guard->request( (string) $args['method'], $url, $args );
+	}
+
+	/**
+	 * Whether a URL is on an endpoint the owner chose: the endpoint itself,
+	 * or a bucket under it (virtual-hosted), on the same port.
+	 *
+	 * @param string $url The address.
+	 *
+	 * @return bool
+	 */
+	private static function is_chosen( string $url ): bool {
+		$host = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
+		$port = wp_parse_url( $url, PHP_URL_PORT );
+		$host = null === $port ? $host : $host . ':' . $port;
+
+		if ( '' === $host ) {
+			return false;
+		}
+
+		foreach ( array_keys( self::$endpoints ) as $endpoint ) {
+			if ( $host === $endpoint || str_ends_with( $host, '.' . $endpoint ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -198,6 +304,8 @@ final class Transport {
 	 * WordPress reports every cURL failure under one code, so the code alone
 	 * says a request never completed -- which is exactly the distinction worth
 	 * drawing, because no S3 error can exist yet.
+	 * So is an address network's SafeUrl refused to ask
+	 * (`http_request_not_executed`).
 	 *
 	 * @since 1.0.0
 	 *
@@ -206,7 +314,7 @@ final class Transport {
 	 * @return bool
 	 */
 	public static function is_transport_error( string $code ): bool {
-		return in_array( $code, array( 'http_request_failed', 'connect_error' ), true );
+		return in_array( $code, array( 'http_request_failed', 'connect_error', 'http_request_not_executed' ), true );
 	}
 
 	/**

@@ -156,6 +156,10 @@ final readonly class Signer {
 		}
 
 		$this->endpoint = Endpoint::normalize( $endpoint );
+
+		// The one address the owner chose, so the one that may be on a
+		// private network -- a MinIO on the LAN. Never metadata.
+		Transport::allow_endpoint( $this->endpoint );
 	}
 
 	/**
