@@ -343,7 +343,7 @@ keys with spaces in them, an endpoint missing or malformed for MinIO.
 `verify()` then lists the bucket, writes a test object, reads it back,
 deletes it, and starts and aborts a multipart upload. A failure is
 `s3_connection_{fault}` -- `key`, `secret`, `missing`, `elsewhere`, `refused`,
-`unreachable`, `altered` and the rest of `ProbeFault` -- with the `field` to
+`unreachable`, `altered` and the rest of `Probe\Fault` -- with the `field` to
 fix, the `check` that failed, its `status`, storage's `code` and every step
 in its data, and a message that says what to change: "The secret key does
 not match the access key. Paste the secret again; most providers show it
@@ -363,8 +363,8 @@ Probe::passed( $steps );               // bool
 Probe::failure( $steps )?->message;    // what to fix, translated
 
 foreach ( $steps as $step ) {
-	$step->check;    // ProbeCheck::Reach | Write | Read | Delete | Multipart | Cors
-	$step->fault;    // null, or ProbeFault::Key, Secret, Refused, Missing, Elsewhere, Altered, CorsOrigin, EtagHidden, …
+	$step->check;    // Probe\Check::Reach | Write | Read | Delete | Multipart | Cors
+	$step->fault;    // null, or Probe\Fault::Key, Secret, Refused, Missing, Elsewhere, Altered, CorsOrigin, EtagHidden, …
 	$step->note;     // on a pass: something worth knowing, such as checksums being off
 	$step->to_array(); // for a REST answer
 }
@@ -478,95 +478,28 @@ would make every plugin that only signs links carry a queue it never uses.
 The bucket browser's own large uploads go from the browser, and its daily
 clear-up is one cron event; neither needs a queue either.
 
-## Moving from arraypress/wp-*
+## How it is laid out
 
-Three sources became this package, under `SugarCommerce\S3\`, with the text
-domain `sugarcommerce`.
+The classes a plugin uses sit at the top of `src/`: `Provider`, `Signer`,
+`Bucket`, `Multipart`, `Upload`, `Connection`, `Probe`, `Account`, `Address`,
+`Transport`, `Validate` and `Method`. Beside them:
 
-### From `sugarcommerce/storage` (`SugarCommerce\Storage\S3`)
+* `Cors/` -- a bucket's CORS policy, its rules, what they allow, and the site's origin
+* `Probe/` -- a connection test's steps (`Step`), the checks (`Check`) and what went wrong (`Fault`)
+* `Signing/` -- the parts of SigV4: endpoints and canonical paths, headers, regions, the signed request
+* `Support/` -- reading a provider's XML and its error documents
+* `Traits/` -- `Bucket`, `Signer` and `Multipart`, one trait per job
+* `Utils/` -- the build's prefix, for option names
 
-Storage held all of this until the split; nothing else changed.
+## Security
 
-| Old | New |
-|---|---|
-| `SugarCommerce\Storage\S3\{Class}` (every class: `Signer`, `Provider`, `Account`, `Address`, `Bucket`, `Multipart`, `Upload`, `Connection`, `Probe`, `ProbeCheck`, `ProbeFault`, `ProbeStep`, `Endpoint`, `Headers`, `Method`, `AddressingStyle`, `SignedRequest`, `Regions`, `Transport`, `Validate`, `Xml`, `StorageError`) | `SugarCommerce\S3\{Class}`, same methods |
-| `SugarCommerce\Storage\S3\Cors\{Analysis, Origin, Policy, Rule, Rules}` | `SugarCommerce\S3\Cors\{Analysis, Origin, Policy, Rule, Rules}` |
-| `SugarCommerce\Storage\S3\ContentDisposition` | `SugarCommerce\Storage\Files\ContentDisposition` -- it names a download from disk too, so it stays in `sugarcommerce/storage` |
-| option `sugarcommerce_storage_upload_{id}` (and `_upload-lock_{id}`) | `sugarcommerce_s3_upload_{id}` (`_upload-lock_{id}`); an upload begun before the switch is not found again: abort it in storage, or let the daily clear-up do it |
-| `SugarCommerce\Storage\Utils\Runtime` for these keys | `SugarCommerce\S3\Utils\Runtime` |
-
-### From `arraypress/wp-s3-signer` (`ArrayPress\S3Signer`)
-
-Everything else in `SugarCommerce\S3` is new.
-
-| Old | New |
-|---|---|
-| `ArrayPress\S3Signer\Signer` (every method, `MAX_EXPIRES`) | `SugarCommerce\S3\Signer`, same methods |
-| `Enums\Provider` (cases, `label()`, `needs_account_id()`, `needs_endpoint()`, `default_region()`, `regions()`, `has_regions()`, `knows_region()`, `addressing()`, `endpoint()`, `signer()`, `options()`) | `Provider`, same; `endpoint()` and `signer()` now refuse a region or account id that is not one DNS label |
-| `Enums\AddressingStyle` (`Path`, `VirtualHosted`, `is_dns_compatible()`) | `AddressingStyle` |
-| `Enums\Method` (cases, `has_body()`) | `Method` |
-| `Models\SignedRequest` (`method`, `url`, `headers`, `body`, `curl_headers()`, `header()`) | `SignedRequest` |
-| `Support\Headers::canonicalize()`, `block()`, `names()` | `Headers::…` |
-| `Support\Endpoint::normalize()`, `host()`, `canonical_uri()`, `encode_key()`, `canonical_query()` | `Endpoint::…`; `canonical_uri()` refuses `.`/`..` segments, `canonical_query()` sorts names as strings |
-| `Support\Validate::bucket()`, `dns_label()`, `region()`, `host()`, `header_name()`, `header_value()`, `credential()` | `Validate::…` (plus `segments()`) |
-| `Support\ContentDisposition::attachment()`, `sanitize()`, `ascii_fallback()` | `SugarCommerce\Storage\Files\ContentDisposition::…` (`sugarcommerce/storage`) |
-| `Support\Filename::basename()`, `extension()`, `stem()`, `clamp()`, `to_ascii()` | `SugarCommerce\Storage\Files\Filename::…` (`sugarcommerce/storage`) |
-| `Support\Url::SCHEME` | `Address::SCHEME` |
-| `Support\Url::host( $url )` | `Address::host( $url )` |
-| `Support\Url::is_s3( $path )` | `Address::is( $path )` |
-| `Support\Url::parse_s3( $path, $optional )` | `Address::parse( $path, $optional )` |
-| `Support\Url::s3( $bucket, $key )` | `Address::to( $bucket, $key )` |
-| `Support\Objects::upload( $signer, $file, $bucket, $key, $args )` | `( new Bucket( $signer, $bucket ) )->upload_file( $key, $file, $args )` -- same arguments and wording keys |
-| `Support\Objects::head( $signer, $bucket, $key, $args )` | `( new Bucket( $signer, $bucket ) )->head( $key, $args )` |
-| `Support\Objects::PART_SIZE`, `MIN_PART_SIZE` | `Bucket::PART_SIZE`, `MIN_PART_SIZE` |
-| `Support\Transport::send()`, `is_success()` | `Transport::…` (plus `request()` and `header()`) |
-| `Data\Regions::for( $provider )` | `Regions::for( $provider )` |
-
-Behaviour that changed on the way: a single-PUT upload now stores its
-`mime_type`; a part answered without an ETag, or an assembly refused inside a
-200, now aborts the upload; a 404 `NoSuchBucket` from `Bucket::cors()` is an
-error rather than "no policy".
-
-### From `arraypress/wp-s3-browser` (`ArrayPress\S3`), the storage half
-
-The browser itself is `sugarcommerce/storage-browser`; these were its S3 parts.
-
-| Old | New |
-|---|---|
-| `ArrayPress\S3\Provider` | `SugarCommerce\S3\Account` (same constructor and methods) |
-| `ArrayPress\S3\Provider::r2()` / `aws()` / `regional()` / `custom()` | `Account::r2()` / `aws()` / `regional()` / `custom()` |
-| `ArrayPress\S3Signer\Enums\Provider` (the `$type` argument) | `SugarCommerce\S3\Provider` |
-| `ArrayPress\S3\Cors\Analysis`, `Rules`, `Origin` | `SugarCommerce\S3\Cors\Analysis`, `Rules`, `Origin` |
-| `Utils\Transport::is_transport_error()` / `explain()` | `SugarCommerce\S3\Transport::is_transport_error()` / `explain()` |
-| `Utils\Encode::object_key( $key )` | `SugarCommerce\S3\Signing\Endpoint::request_key( $key )` |
-| `Account::format_url()`, `build_url_with_encoded_key()`, `build_url_with_query()` | the signer's: `Account::signer( $access, $secret )->sign( … )->url` |
-| `S3\Backups` (in `sugarcommerce/storage` for a while; removed, unused) | `Bucket::upload_file()`, `list()`, `delete()` and `download_file()` |
-
-## From the retired SaaS packages
-
-| Old | New |
-|---|---|
-| `SugarCommerce\ObjectStorage\Connection::from_array()`, `problem()`, `signer()`, `bucket()`, `host()` | `Connection::from_array()` (one array, a `WP_Error` naming the field instead of a sentence), `problem()`, `verify()`, `check()`, `signer()`, `bucket()`, `host()` |
-| `SugarCommerce\ObjectStorage\Probe`, `ProbeCheck`, `ProbeFault`, `ProbeStep` | `Probe`, `ProbeCheck`, `ProbeFault`, `ProbeStep` -- plus a Multipart step, `Key` and `Secret` faults from storage's code, a translated `message` and a `note` on each step, and `preflight()` public |
-| `Bucket::parts()` and the multipart calls, with nothing calling them | `Multipart` and `Upload`: resumable, checksummed, cleared up, used by `sugarcommerce/storage-browser` |
-
-Left out:
-
-* From `object-storage`'s `Connection`: `to_json()`/`from_json()`, `masked()`,
-  `same_bucket()` and the rule that a user's bucket must be on the
-  provider's own host -- they were for buckets a SaaS's users brought; a
-  WordPress site stores its one connection in its own settings. Typed
-  endpoints are taken from whoever may save settings.
-* From `s3-signer` and `object-storage`: the
-  `sugarcommerce/http-client` dependency (its SSRF guard, connection pinning and
-  byte caps -- WordPress's HTTP API does the requests, `limit_response_size`
-  does the caps, and a bucket endpoint is operator configuration or a
-  provider's own host); the `Signer::r2()`, `aws()`, `backblaze()`,
-  `digitalocean()` and `minio()` factories (`Provider::X->signer()` is the one
-  way); `AddressingStyle::is_valid_bucket()` (`Validate::bucket()` is the same
-  rule); `#[\NoDiscard]` and its test; the benchmark scripts. Bucket answers
-  with `WP_Error` where the SaaS one threw `StorageError` or returned `false`;
-  `StorageError` is kept, and `to_wp_error()` is how Bucket builds them.
+* Signs and sends nothing a caller did not ask for: no SDK, no redirects followed, and every answer that could be large read only up to a cap
+* Refuses a cloud metadata service as an endpoint (169.254.169.254 in any spelling, metadata.google.internal, 100.100.100.200, 0.0.0.0), so a connection test cannot read back the server's own credentials
+* Reads no provider answer that declares a document type, and fetches nothing an answer names, so entity expansion and external entities never run
+* Keeps the keys out of stack traces (`#[\SensitiveParameter]`) and out of `var_dump()` of a signer or a connection
+* Refuses a header value with a line break, a key or bucket with a `.` or `..` segment, and a byte range that is not one, before anything is signed
+* Treats a 200 that carries an error document as the refusal it is, so a failed copy or assembly is never recorded as done
+* Holds an upload against a second sender, and never overwrites a file on download
 
 ## Requirements
 
