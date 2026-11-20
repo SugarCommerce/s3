@@ -70,6 +70,27 @@ final class ValidateExtrasTest extends TestCase {
 	/**
 	 * A credential has to be there.
 	 */
+	/**
+	 * A cloud's metadata service answers on a fixed address with the
+	 * server's own credentials. An endpoint there would have a connection
+	 * test read them back as "storage's" answer, so it is never a host.
+	 */
+	public function test_a_metadata_service_is_never_a_host(): void {
+		foreach ( array( '169.254.169.254', '169.254.170.2:80', 'METADATA.google.internal', 'metadata.google.internal.', '100.100.100.200', '0.0.0.0', '0.0.0.0:9000', '0', '2852039166', '0xa9fea9fe', '0251.0376.0251.0376', '169.254.43518' ) as $host ) {
+			$this->assertTrue( Validate::metadata_host( $host ), $host );
+		}
+
+		foreach ( array( 'minio.local:9000', '192.168.1.20:9000', '10.0.0.5', '127.0.0.1:9000', 's3.eu-west-2.amazonaws.com', '169.254.example.com', '100.100.100.201' ) as $host ) {
+			$this->assertFalse( Validate::metadata_host( $host ), $host );
+		}
+	}
+
+	public function test_the_signer_refuses_a_metadata_endpoint(): void {
+		$this->expectException( \InvalidArgumentException::class );
+
+		new \SugarCommerce\S3\Signer( 'access', 'secret', 'http://169.254.169.254/' );
+	}
+
 	public function test_a_credential_has_to_be_there(): void {
 		$this->assertTrue( Validate::credential( 'AKIA' . 'IOSFODNN7EXAMPLE' ) );
 		$this->assertFalse( Validate::credential( '' ) );

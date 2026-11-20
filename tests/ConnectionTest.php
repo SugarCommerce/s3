@@ -103,6 +103,11 @@ final class ConnectionTest extends TestCase {
 			'minio without host'   => [ [ 'provider' => 'minio' ] + $r2, 'endpoint' ],
 			'minio with a path'    => [ [ 'provider' => 'minio', 'endpoint' => 'user@minio.local' ] + $r2, 'endpoint' ],
 			'minio with a bad port' => [ [ 'provider' => 'minio', 'endpoint' => 'minio.local:99999' ] + $r2, 'endpoint' ],
+			'cloud metadata'       => [ [ 'provider' => 'minio', 'endpoint' => '169.254.169.254' ] + $r2, 'endpoint' ],
+			'metadata with a port' => [ [ 'provider' => 'minio', 'endpoint' => '169.254.170.2:80' ] + $r2, 'endpoint' ],
+			'google metadata'      => [ [ 'provider' => 'minio', 'endpoint' => 'metadata.google.internal' ] + $r2, 'endpoint' ],
+			'alibaba metadata'     => [ [ 'provider' => 'minio', 'endpoint' => '100.100.100.200' ] + $r2, 'endpoint' ],
+			'no address'           => [ [ 'provider' => 'minio', 'endpoint' => '0.0.0.0:9000' ] + $r2, 'endpoint' ],
 		];
 	}
 

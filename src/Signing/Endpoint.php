@@ -53,6 +53,10 @@ final class Endpoint {
 			throw new InvalidArgumentException( 'S3 endpoint must be a bare host, e.g. "s3.eu-west-2.amazonaws.com".' );
 		}
 
+		if ( Validate::metadata_host( $host ) ) {
+			throw new InvalidArgumentException( 'S3 endpoint cannot be a cloud metadata service.' );
+		}
+
 		return $host;
 	}
 

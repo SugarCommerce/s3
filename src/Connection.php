@@ -142,6 +142,7 @@ final readonly class Connection {
 				),
 			),
 			$typed && ! self::is_host( $this->endpoint ) => array( 'endpoint', __( 'An endpoint is a host name, with a port if it needs one, such as minio.example.com:9000.', 'sugarcommerce' ) ),
+			$typed && Validate::metadata_host( $this->endpoint ) => array( 'endpoint', __( 'That address is the server\'s own metadata service, not storage.', 'sugarcommerce' ) ),
 			$this->provider->needs_account_id() && 1 !== preg_match( '/^[a-z0-9]{8,64}$/', $this->account_id ) => array( 'account_id', __( 'Paste your Cloudflare account ID: the 32 letters and numbers at the start of your R2 endpoint address.', 'sugarcommerce' ) ),
 			'' !== $this->bucket && ! Validate::bucket( $this->bucket ) => array( 'bucket', __( 'A bucket name is 3 to 63 lowercase letters, numbers, dots and hyphens, starting and ending with a letter or number.', 'sugarcommerce' ) ),
 			'' !== $this->bucket && AddressingStyle::VirtualHosted === $this->provider->addressing() && ! AddressingStyle::is_dns_compatible( $this->bucket ) => array(
