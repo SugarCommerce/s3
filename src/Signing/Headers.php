@@ -10,9 +10,10 @@
 
 declare( strict_types=1 );
 
-namespace SugarCommerce\S3;
+namespace SugarCommerce\S3\Signing;
 
 use InvalidArgumentException;
+use SugarCommerce\S3\Validate;
 
 /**
  * Class Headers

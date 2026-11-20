@@ -13,6 +13,10 @@ declare( strict_types=1 );
 namespace SugarCommerce\S3;
 
 use SugarCommerce\S3\Cors\Policy;
+use SugarCommerce\S3\Probe\Check;
+use SugarCommerce\S3\Probe\Fault;
+use SugarCommerce\S3\Probe\Step;
+use SugarCommerce\S3\Support\StorageError;
 use WP_Error;
 
 /**
@@ -56,7 +60,7 @@ final class Probe {
 	 *
 	 * @since 1.0.0
 	 */
-	public const PREFIX = 'connection-test/';
+	public const string PREFIX = 'connection-test/';
 
 	/**
 	 * What the test object holds, by default, so reading it back proves
@@ -64,14 +68,14 @@ final class Probe {
 	 *
 	 * @since 1.0.0
 	 */
-	public const BODY = "Connection test. Safe to delete.\n";
+	public const string BODY = "Connection test. Safe to delete.\n";
 
 	/**
 	 * Most bytes any answer in the test may carry.
 	 *
 	 * @since 1.0.0
 	 */
-	public const MAX_READ = 65536;
+	public const int MAX_READ = 65536;
 
 	/**
 	 * Set up a test.
@@ -98,8 +102,8 @@ final class Probe {
 	 *                                    None skips the CORS question, which
 	 *                                    then passes.
 	 *
-	 * @return array<int, ProbeStep> One per ProbeCheck, in order. After the
-	 *                               first failure the rest are Skipped.
+	 * @return array<int, Step> One per Check, in order. After the first
+	 *                          failure the rest are Skipped.
 	 */
 	public function run( Bucket $bucket, array $origins = array() ): array {
 		$key     = $this->prefix . bin2hex( random_bytes( 8 ) ) . '.txt';
@@ -110,24 +114,24 @@ final class Probe {
 		$written = false;
 		$removed = false;
 
-		foreach ( ProbeCheck::cases() as $check ) {
+		foreach ( Check::cases() as $check ) {
 			if ( $failed ) {
-				$steps[] = new ProbeStep( $check, ProbeFault::Skipped, 0, '', __( 'Not tried, because an earlier step failed.', 'sugarcommerce' ) );
+				$steps[] = new Step( $check, Fault::Skipped, 0, '', __( 'Not tried, because an earlier step failed.', 'sugarcommerce' ) );
 
 				continue;
 			}
 
 			$step = match ( $check ) {
-				ProbeCheck::Reach     => $this->reach( $bucket ),
-				ProbeCheck::Write     => $this->write( $bucket, $key, $origins[0] ?? '', $put ),
-				ProbeCheck::Read      => $this->read( $bucket, $key ),
-				ProbeCheck::Delete    => $this->delete( $bucket, $key ),
-				ProbeCheck::Multipart => $this->multipart( $bucket, $key ),
-				ProbeCheck::Cors      => $this->cors( $bucket, $key, $origins, $put ),
+				Check::Reach     => $this->reach( $bucket ),
+				Check::Write     => $this->write( $bucket, $key, $origins[0] ?? '', $put ),
+				Check::Read      => $this->read( $bucket, $key ),
+				Check::Delete    => $this->delete( $bucket, $key ),
+				Check::Multipart => $this->multipart( $bucket, $key ),
+				Check::Cors      => $this->cors( $bucket, $key, $origins, $put ),
 			};
 
-			$written = $written || ( ProbeCheck::Write === $check && $step->ok() );
-			$removed = $removed || ( ProbeCheck::Delete === $check && $step->ok() );
+			$written = $written || ( Check::Write === $check && $step->ok() );
+			$removed = $removed || ( Check::Delete === $check && $step->ok() );
 			$failed  = ! $step->ok();
 			$steps[] = $step;
 		}
@@ -146,7 +150,7 @@ final class Probe {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param array<int, ProbeStep> $steps What run() returned.
+	 * @param array<int, Step> $steps What run() returned.
 	 *
 	 * @return bool
 	 */
@@ -159,11 +163,11 @@ final class Probe {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param array<int, ProbeStep> $steps What run() returned.
+	 * @param array<int, Step> $steps What run() returned.
 	 *
-	 * @return ProbeStep|null
+	 * @return Step|null
 	 */
-	public static function failure( array $steps ): ?ProbeStep {
+	public static function failure( array $steps ): ?Step {
 		foreach ( $steps as $step ) {
 			if ( ! $step->ok() ) {
 				return $step;
@@ -180,15 +184,15 @@ final class Probe {
 	 *
 	 * @param Bucket $bucket The bucket.
 	 *
-	 * @return ProbeStep
+	 * @return Step
 	 */
-	private function reach( Bucket $bucket ): ProbeStep {
+	private function reach( Bucket $bucket ): Step {
 		$request  = $bucket->signer()->sign_list_objects( $bucket->name(), 1, $this->prefix );
 		$response = Transport::request( 'GET', $request->url, $request->headers, null, $this->capped() );
 
 		return Transport::is_success( $response['status'] ) && str_contains( $response['body'], 'ListBucketResult' )
-			? new ProbeStep( ProbeCheck::Reach, null, $response['status'] )
-			: self::failed( ProbeCheck::Reach, $response, $bucket );
+			? new Step( Check::Reach, null, $response['status'] )
+			: self::failed( Check::Reach, $response, $bucket );
 	}
 
 	/**
@@ -199,16 +203,16 @@ final class Probe {
 	 * @param string     $origin An origin the uploader runs on, or ''.
 	 * @param array|null $put    Set to the answer, for the CORS step.
 	 *
-	 * @return ProbeStep
+	 * @return Step
 	 */
-	private function write( Bucket $bucket, string $key, string $origin, ?array &$put ): ProbeStep {
+	private function write( Bucket $bucket, string $key, string $origin, ?array &$put ): Step {
 		$request = $bucket->signer()->sign( Method::PUT, $bucket->name(), $key, array(), $this->body, array( 'content-type' => 'text/plain' ) );
 		$headers = $request->headers + ( '' === $origin ? array() : array( 'Origin' => $origin ) );
 		$put     = Transport::request( 'PUT', $request->url, $headers, $this->body, $this->capped() );
 
 		return Transport::is_success( $put['status'] )
-			? new ProbeStep( ProbeCheck::Write, null, $put['status'] )
-			: self::failed( ProbeCheck::Write, $put, $bucket );
+			? new Step( Check::Write, null, $put['status'] )
+			: self::failed( Check::Write, $put, $bucket );
 	}
 
 	/**
@@ -217,20 +221,20 @@ final class Probe {
 	 * @param Bucket $bucket The bucket.
 	 * @param string $key    Test object key.
 	 *
-	 * @return ProbeStep
+	 * @return Step
 	 */
-	private function read( Bucket $bucket, string $key ): ProbeStep {
+	private function read( Bucket $bucket, string $key ): Step {
 		$response = Transport::request( 'GET', $bucket->url( $key, 60 ), array(), null, $this->capped() );
 
 		if ( ! Transport::is_success( $response['status'] ) ) {
-			return self::failed( ProbeCheck::Read, $response, $bucket );
+			return self::failed( Check::Read, $response, $bucket );
 		}
 
 		return $this->body === $response['body']
-			? new ProbeStep( ProbeCheck::Read, null, $response['status'] )
-			: new ProbeStep(
-				ProbeCheck::Read,
-				ProbeFault::Altered,
+			? new Step( Check::Read, null, $response['status'] )
+			: new Step(
+				Check::Read,
+				Fault::Altered,
 				$response['status'],
 				'',
 				__( 'The test file read back differently from how it was written. Something between this site and storage is changing files: a proxy, or a setting that compresses or rewrites them.', 'sugarcommerce' )
@@ -243,15 +247,15 @@ final class Probe {
 	 * @param Bucket $bucket The bucket.
 	 * @param string $key    Test object key.
 	 *
-	 * @return ProbeStep
+	 * @return Step
 	 */
-	private function delete( Bucket $bucket, string $key ): ProbeStep {
+	private function delete( Bucket $bucket, string $key ): Step {
 		$request  = $bucket->signer()->sign_delete_object( $bucket->name(), $key );
 		$response = Transport::request( 'DELETE', $request->url, $request->headers, null, $this->capped() );
 
 		return Transport::is_success( $response['status'] )
-			? new ProbeStep( ProbeCheck::Delete, null, $response['status'] )
-			: self::failed( ProbeCheck::Delete, $response, $bucket );
+			? new Step( Check::Delete, null, $response['status'] )
+			: self::failed( Check::Delete, $response, $bucket );
 	}
 
 	/**
@@ -260,25 +264,25 @@ final class Probe {
 	 * @param Bucket $bucket The bucket.
 	 * @param string $key    Test object key.
 	 *
-	 * @return ProbeStep
+	 * @return Step
 	 */
-	private function multipart( Bucket $bucket, string $key ): ProbeStep {
+	private function multipart( Bucket $bucket, string $key ): Step {
 		$upload = $bucket->start_upload( $key, 'text/plain' );
 
 		if ( $upload instanceof WP_Error ) {
-			return self::refused( ProbeCheck::Multipart, $upload, $bucket );
+			return self::refused( Check::Multipart, $upload, $bucket );
 		}
 
 		$listed  = null !== $bucket->parts( $key, $upload );
 		$aborted = $bucket->abort_upload( $key, $upload );
 
 		if ( $listed && $aborted ) {
-			return new ProbeStep( ProbeCheck::Multipart, null, 200 );
+			return new Step( Check::Multipart, null, 200 );
 		}
 
-		return new ProbeStep(
-			ProbeCheck::Multipart,
-			ProbeFault::Failed,
+		return new Step(
+			Check::Multipart,
+			Fault::Failed,
 			0,
 			'',
 			$listed
@@ -295,11 +299,11 @@ final class Probe {
 	 * @param array<int, string> $origins Origins the uploader runs on.
 	 * @param array|null         $put     The answer to the test write.
 	 *
-	 * @return ProbeStep
+	 * @return Step
 	 */
-	private function cors( Bucket $bucket, string $key, array $origins, ?array $put ): ProbeStep {
+	private function cors( Bucket $bucket, string $key, array $origins, ?array $put ): Step {
 		if ( array() === $origins ) {
-			return new ProbeStep( ProbeCheck::Cors, null, 0, '', '', __( 'Not checked: no site address was given to check uploads from.', 'sugarcommerce' ) );
+			return new Step( Check::Cors, null, 0, '', '', __( 'Not checked: no site address was given to check uploads from.', 'sugarcommerce' ) );
 		}
 
 		$stored = $bucket->cors();
@@ -308,9 +312,9 @@ final class Probe {
 			$verdict = $stored['policy']->supports_multipart_upload_from( $origins );
 
 			if ( ! $verdict['ok'] ) {
-				return new ProbeStep(
-					ProbeCheck::Cors,
-					ProbeFault::CorsPolicy,
+				return new Step(
+					Check::Cors,
+					Fault::CorsPolicy,
 					0,
 					$verdict['reason'],
 					sprintf(
@@ -323,11 +327,11 @@ final class Probe {
 
 			foreach ( $origins as $origin ) {
 				if ( ! $stored['policy']->accepts( $origin, 'PUT', 'Content-MD5' ) ) {
-					return new ProbeStep( ProbeCheck::Cors, null, 200, '', '', self::no_checksums() );
+					return new Step( Check::Cors, null, 200, '', '', self::no_checksums() );
 				}
 			}
 
-			return new ProbeStep( ProbeCheck::Cors, null, 200 );
+			return new Step( Check::Cors, null, 200 );
 		}
 
 		// The keys may not read the policy, which a well-scoped key often
@@ -337,9 +341,9 @@ final class Probe {
 
 		foreach ( $origins as $origin ) {
 			if ( ! self::preflight( $url, $origin, 'content-type' ) ) {
-				return new ProbeStep(
-					ProbeCheck::Cors,
-					ProbeFault::CorsOrigin,
+				return new Step(
+					Check::Cors,
+					Fault::CorsOrigin,
 					0,
 					$origin,
 					sprintf(
@@ -354,16 +358,16 @@ final class Probe {
 		}
 
 		if ( ! str_contains( strtolower( Transport::header( $put ?? array( 'headers' => array() ), 'access-control-expose-headers' ) ), 'etag' ) ) {
-			return new ProbeStep(
-				ProbeCheck::Cors,
-				ProbeFault::EtagHidden,
+			return new Step(
+				Check::Cors,
+				Fault::EtagHidden,
 				0,
 				'',
 				__( 'The bucket\'s CORS rules allow uploads but do not expose the ETag header. Add ETag to ExposeHeaders, or large uploads cannot confirm their parts.', 'sugarcommerce' )
 			);
 		}
 
-		return new ProbeStep( ProbeCheck::Cors, null, 200, '', '', $checksum ? '' : self::no_checksums() );
+		return new Step( Check::Cors, null, 200, '', '', $checksum ? '' : self::no_checksums() );
 	}
 
 	/* ─── Internals ─────────────────────────────────────────────────── */
@@ -431,41 +435,41 @@ final class Probe {
 	/**
 	 * A step failed by one answer.
 	 *
-	 * @param ProbeCheck $check    What was tried.
+	 * @param Check $check    What was tried.
 	 * @param array      $response What Transport::request() returned.
 	 * @param Bucket     $bucket   The bucket.
 	 *
-	 * @return ProbeStep
+	 * @return Step
 	 */
-	private static function failed( ProbeCheck $check, array $response, Bucket $bucket ): ProbeStep {
+	private static function failed( Check $check, array $response, Bucket $bucket ): Step {
 		$error  = StorageError::refused( $check->value, (int) $response['status'], '' !== $response['body'] ? $response['body'] : (string) $response['error'] );
-		$fault  = ProbeFault::of( $error->status, $error->error_code );
+		$fault  = Fault::of( $error->status, $error->error_code );
 		$detail = match ( $fault ) {
-			ProbeFault::Unreachable => (string) $response['error'],
-			ProbeFault::Elsewhere   => self::region( $response ),
+			Fault::Unreachable => (string) $response['error'],
+			Fault::Elsewhere   => self::region( $response ),
 			default                 => $error->reason,
 		};
 
-		return new ProbeStep( $check, $fault, $error->status, $detail, self::say( $check, $fault, $error->status, $detail, $bucket ), '', $error->error_code );
+		return new Step( $check, $fault, $error->status, $detail, self::say( $check, $fault, $error->status, $detail, $bucket ), '', $error->error_code );
 	}
 
 	/**
 	 * A step failed by a WP_Error from Bucket.
 	 *
-	 * @param ProbeCheck $check  What was tried.
+	 * @param Check $check  What was tried.
 	 * @param WP_Error   $error  The refusal.
 	 * @param Bucket     $bucket The bucket.
 	 *
-	 * @return ProbeStep
+	 * @return Step
 	 */
-	private static function refused( ProbeCheck $check, WP_Error $error, Bucket $bucket ): ProbeStep {
+	private static function refused( Check $check, WP_Error $error, Bucket $bucket ): Step {
 		$data   = (array) $error->get_error_data();
 		$status = (int) ( $data['status'] ?? 0 );
 		$code   = (string) ( $data['error_code'] ?? '' );
-		$fault  = ProbeFault::of( $status, $code );
-		$detail = ProbeFault::Unreachable === $fault ? $error->get_error_message() : (string) ( $data['reason'] ?? '' );
+		$fault  = Fault::of( $status, $code );
+		$detail = Fault::Unreachable === $fault ? $error->get_error_message() : (string) ( $data['reason'] ?? '' );
 
-		return new ProbeStep( $check, $fault, $status, $detail, self::say( $check, $fault, $status, $detail, $bucket ), '', $code );
+		return new Step( $check, $fault, $status, $detail, self::say( $check, $fault, $status, $detail, $bucket ), '', $code );
 	}
 
 	/**
@@ -488,27 +492,27 @@ final class Probe {
 	/**
 	 * What went wrong, in a sentence for whoever fixes the settings.
 	 *
-	 * @param ProbeCheck $check  What was tried.
-	 * @param ProbeFault $fault  What went wrong.
+	 * @param Check $check  What was tried.
+	 * @param Fault $fault  What went wrong.
 	 * @param int        $status HTTP status.
 	 * @param string     $detail The step's detail.
 	 * @param Bucket     $bucket The bucket.
 	 *
 	 * @return string
 	 */
-	public static function say( ProbeCheck $check, ProbeFault $fault, int $status, string $detail, Bucket $bucket ): string {
+	public static function say( Check $check, Fault $fault, int $status, string $detail, Bucket $bucket ): string {
 		$name = $bucket->name();
 
 		return match ( $fault ) {
-			ProbeFault::Unreachable => Transport::explain( $detail, $bucket->origin() ),
-			ProbeFault::Key         => __( 'Storage does not recognise this access key. Paste the access key ID again, from the API token you created.', 'sugarcommerce' ),
-			ProbeFault::Secret      => __( 'The secret key does not match the access key. Paste the secret again; most providers show it only once, when the token is created.', 'sugarcommerce' ),
-			ProbeFault::Missing     => sprintf(
+			Fault::Unreachable => Transport::explain( $detail, $bucket->origin() ),
+			Fault::Key         => __( 'Storage does not recognise this access key. Paste the access key ID again, from the API token you created.', 'sugarcommerce' ),
+			Fault::Secret      => __( 'The secret key does not match the access key. Paste the secret again; most providers show it only once, when the token is created.', 'sugarcommerce' ),
+			Fault::Missing     => sprintf(
 				/* translators: %s: bucket name. */
 				__( 'There is no bucket called "%s" here. Check the bucket name, and the account ID or region it is under.', 'sugarcommerce' ),
 				$name
 			),
-			ProbeFault::Elsewhere   => '' !== $detail
+			Fault::Elsewhere   => '' !== $detail
 				? sprintf(
 					/* translators: 1: bucket name, 2: a region, such as eu-west-2. */
 					__( 'The bucket "%1$s" is in the %2$s region. Set the region to %2$s.', 'sugarcommerce' ),
@@ -522,7 +526,7 @@ final class Probe {
 				),
 			// R2 refuses a bucket that is not there the same way as one the
 			// keys may not touch, so the first request cannot tell which.
-			ProbeFault::Refused     => ProbeCheck::Reach === $check
+			Fault::Refused     => Check::Reach === $check
 				? sprintf(
 					/* translators: %s: bucket name. */
 					__( 'These keys may not list the bucket "%s", or there is no bucket by that name. Check the name, and give the API token read and write permission for it.', 'sugarcommerce' ),

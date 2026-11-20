@@ -10,17 +10,17 @@
 
 declare( strict_types=1 );
 
-namespace SugarCommerce\S3;
+namespace SugarCommerce\S3\Probe;
 
 /**
- * Enum ProbeCheck
+ * Enum Check
  *
  * The steps of Probe::run(), in the order they run. Each is something a
  * plugin storing files in the bucket will later do for real.
  *
  * @since 1.0.0
  */
-enum ProbeCheck: string {
+enum Check: string {
 
 	/** The endpoint answers, the keys are accepted and the bucket is listed. */
 	case Reach = 'reach';

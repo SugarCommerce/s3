@@ -13,12 +13,12 @@ namespace SugarCommerce\S3\Tests;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use SugarCommerce\S3\Account;
-use SugarCommerce\S3\AddressingStyle;
 use SugarCommerce\S3\Bucket;
-use SugarCommerce\S3\Endpoint;
 use SugarCommerce\S3\Method;
 use SugarCommerce\S3\Provider;
-use SugarCommerce\S3\StorageError;
+use SugarCommerce\S3\Signing\AddressingStyle;
+use SugarCommerce\S3\Signing\Endpoint;
+use SugarCommerce\S3\Support\StorageError;
 use SugarCommerce\S3\Tests\Support\FakeHttp;
 use WP_Error;
 

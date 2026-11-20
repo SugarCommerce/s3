@@ -10,22 +10,22 @@
 
 declare( strict_types=1 );
 
-namespace SugarCommerce\S3;
+namespace SugarCommerce\S3\Probe;
 
 /**
- * Class ProbeStep
+ * Class Step
  *
  * @since 1.0.0
  */
-final class ProbeStep {
+final readonly class Step {
 
 	/**
 	 * Record a step.
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param ProbeCheck      $check   What was tried.
-	 * @param ProbeFault|null $fault   What went wrong, or null when it passed.
+	 * @param Check      $check   What was tried.
+	 * @param Fault|null $fault   What went wrong, or null when it passed.
 	 * @param int             $status  The HTTP status that decided it, or 0.
 	 * @param string          $detail  For Unreachable, the transport's reason
 	 *                                 (for a log); for Elsewhere, the region
@@ -40,13 +40,13 @@ final class ProbeStep {
 	 * @param string          $code    Storage's own error code, or ''.
 	 */
 	public function __construct(
-		public readonly ProbeCheck $check,
-		public readonly ?ProbeFault $fault = null,
-		public readonly int $status = 0,
-		public readonly string $detail = '',
-		public readonly string $message = '',
-		public readonly string $note = '',
-		public readonly string $code = '',
+		public Check $check,
+		public ?Fault $fault = null,
+		public int $status = 0,
+		public string $detail = '',
+		public string $message = '',
+		public string $note = '',
+		public string $code = '',
 	) {}
 
 	/**

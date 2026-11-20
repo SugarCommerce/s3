@@ -3,12 +3,12 @@ declare( strict_types=1 );
 
 namespace SugarCommerce\S3\Tests;
 
-use SugarCommerce\S3\AddressingStyle;
-use SugarCommerce\S3\Method;
-use SugarCommerce\S3\Provider;
-use SugarCommerce\S3\Transport;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use SugarCommerce\S3\Method;
+use SugarCommerce\S3\Provider;
+use SugarCommerce\S3\Signing\AddressingStyle;
+use SugarCommerce\S3\Transport;
 
 /**
  * The providers added for parity with arraypress/wp-s3-browser, plus the

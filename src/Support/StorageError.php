@@ -10,7 +10,7 @@
 
 declare( strict_types=1 );
 
-namespace SugarCommerce\S3;
+namespace SugarCommerce\S3\Support;
 
 use RuntimeException;
 use WP_Error;

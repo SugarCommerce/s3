@@ -538,7 +538,7 @@ The browser itself is `sugarcommerce/storage-browser`; these were its S3 parts.
 | `ArrayPress\S3Signer\Enums\Provider` (the `$type` argument) | `SugarCommerce\S3\Provider` |
 | `ArrayPress\S3\Cors\Analysis`, `Rules`, `Origin` | `SugarCommerce\S3\Cors\Analysis`, `Rules`, `Origin` |
 | `Utils\Transport::is_transport_error()` / `explain()` | `SugarCommerce\S3\Transport::is_transport_error()` / `explain()` |
-| `Utils\Encode::object_key( $key )` | `SugarCommerce\S3\Endpoint::request_key( $key )` |
+| `Utils\Encode::object_key( $key )` | `SugarCommerce\S3\Signing\Endpoint::request_key( $key )` |
 | `Account::format_url()`, `build_url_with_encoded_key()`, `build_url_with_query()` | the signer's: `Account::signer( $access, $secret )->sign( … )->url` |
 | `S3\Backups` (in `sugarcommerce/storage` for a while; removed, unused) | `Bucket::upload_file()`, `list()`, `delete()` and `download_file()` |
 

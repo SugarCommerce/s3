@@ -31,18 +31,18 @@ final class Analysis {
 	/**
 	 * Methods a browser uses to upload an object.
 	 */
-	private const UPLOAD_METHODS = array( 'PUT', 'POST' );
+	private const array UPLOAD_METHODS = array( 'PUT', 'POST' );
 
 	/**
 	 * Methods that change the bucket, and so are worth warning about when
 	 * any origin may call them.
 	 */
-	private const WRITE_METHODS = array( 'PUT', 'POST', 'DELETE' );
+	private const array WRITE_METHODS = array( 'PUT', 'POST', 'DELETE' );
 
 	/**
 	 * A preflight cached beyond this is slow to correct after a rule change.
 	 */
-	private const LONG_CACHE = 86400;
+	private const int LONG_CACHE = 86400;
 
 	/**
 	 * Describe what a rule set permits.

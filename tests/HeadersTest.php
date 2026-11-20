@@ -9,9 +9,9 @@ declare( strict_types=1 );
 
 namespace SugarCommerce\S3\Tests;
 
-use SugarCommerce\S3\Headers;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use SugarCommerce\S3\Signing\Headers;
 
 /**
  * SigV4 signs a canonical form of the headers, not the headers as written.

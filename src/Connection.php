@@ -13,6 +13,10 @@ declare( strict_types=1 );
 namespace SugarCommerce\S3;
 
 use InvalidArgumentException;
+use SugarCommerce\S3\Probe\Check;
+use SugarCommerce\S3\Probe\Fault;
+use SugarCommerce\S3\Probe\Step;
+use SugarCommerce\S3\Signing\AddressingStyle;
 use WP_Error;
 
 /**
@@ -45,7 +49,7 @@ use WP_Error;
  *
  * @since 1.0.0
  */
-final class Connection {
+final readonly class Connection {
 
 	/**
 	 * Settings for one bucket.
@@ -62,13 +66,13 @@ final class Connection {
 	 *                             MinIO and Other.
 	 */
 	public function __construct(
-		public readonly Provider $provider,
-		public readonly string $bucket,
-		#[\SensitiveParameter] private readonly string $access_key,
-		#[\SensitiveParameter] private readonly string $secret_key,
-		public readonly string $region = '',
-		public readonly string $account_id = '',
-		public readonly string $endpoint = '',
+		public Provider $provider,
+		public string $bucket,
+		#[\SensitiveParameter] private string $access_key,
+		#[\SensitiveParameter] private string $secret_key,
+		public string $region = '',
+		public string $account_id = '',
+		public string $endpoint = '',
 	) {}
 
 	/**
@@ -183,7 +187,7 @@ final class Connection {
 	 *
 	 * @return true|WP_Error `s3_connection_{fault}` -- `key`, `secret`,
 	 *                       `missing`, `elsewhere`, `refused`, `unreachable`
-	 *                       and the rest of ProbeFault -- with the `field`,
+	 *                       and the rest of Fault -- with the `field`,
 	 *                       the `check` that failed, its `status`, storage's
 	 *                       `code`, and every `steps` entry in its data.
 	 */
@@ -211,11 +215,11 @@ final class Connection {
 			array(
 				// A bucket refused at the first request may be a name that
 				// is not there.
-				'field'  => ProbeFault::Refused === $failure->fault && ProbeCheck::Reach === $failure->check ? 'bucket' : $failure->fault->field( $this->provider ),
+				'field'  => Fault::Refused === $failure->fault && Check::Reach === $failure->check ? 'bucket' : $failure->fault->field( $this->provider ),
 				'check'  => $failure->check->value,
 				'status' => $failure->status,
 				'code'   => $failure->code,
-				'steps'  => array_map( static fn( ProbeStep $step ): array => $step->to_array(), $steps ),
+				'steps'  => array_map( static fn( Step $step ): array => $step->to_array(), $steps ),
 			)
 		);
 	}
@@ -228,7 +232,7 @@ final class Connection {
 	 * @param array<int, string> $origins Origins a browser uploader runs on.
 	 * @param Probe|null         $probe   The test to run.
 	 *
-	 * @return array<int, ProbeStep>
+	 * @return array<int, Step>
 	 *
 	 * @throws InvalidArgumentException Without a bucket, or with settings
 	 *                                  problem() refuses.
@@ -322,17 +326,17 @@ final class Connection {
 		$data   = (array) $buckets->get_error_data();
 		$status = (int) ( $data['status'] ?? 0 );
 		$code   = (string) ( $data['error_code'] ?? '' );
-		$fault  = ProbeFault::of( $status, $code );
+		$fault  = Fault::of( $status, $code );
 
 		// Scoped to buckets: the keys are right, and may not list them.
-		if ( ProbeFault::Refused === $fault ) {
+		if ( Fault::Refused === $fault ) {
 			return true;
 		}
 
 		$message = match ( $fault ) {
-			ProbeFault::Unreachable => Transport::explain( $buckets->get_error_message(), 'https://' . $this->host() ),
-			ProbeFault::Key         => __( 'Storage does not recognise this access key. Paste the access key ID again, from the API token you created.', 'sugarcommerce' ),
-			ProbeFault::Secret      => __( 'The secret key does not match the access key. Paste the secret again; most providers show it only once, when the token is created.', 'sugarcommerce' ),
+			Fault::Unreachable => Transport::explain( $buckets->get_error_message(), 'https://' . $this->host() ),
+			Fault::Key         => __( 'Storage does not recognise this access key. Paste the access key ID again, from the API token you created.', 'sugarcommerce' ),
+			Fault::Secret      => __( 'The secret key does not match the access key. Paste the secret again; most providers show it only once, when the token is created.', 'sugarcommerce' ),
 			default                 => sprintf(
 				/* translators: 1: an HTTP status code, 2: storage's own words. */
 				__( 'Storage answered %1$d when asked for the list of buckets. %2$s', 'sugarcommerce' ),
@@ -346,7 +350,7 @@ final class Connection {
 			$message,
 			array(
 				'field'  => $fault->field( $this->provider ),
-				'check'  => ProbeCheck::Reach->value,
+				'check'  => Check::Reach->value,
 				'status' => $status,
 				'code'   => $code,
 				'steps'  => array(),

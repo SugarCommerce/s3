@@ -9,10 +9,10 @@ declare( strict_types=1 );
 
 namespace SugarCommerce\S3\Tests;
 
-use SugarCommerce\S3\AddressingStyle;
-use SugarCommerce\S3\Endpoint;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use SugarCommerce\S3\Signing\AddressingStyle;
+use SugarCommerce\S3\Signing\Endpoint;
 
 /**
  * Where a request goes, and what its path is once the bucket has been put

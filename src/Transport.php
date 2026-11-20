@@ -12,6 +12,7 @@ declare( strict_types=1 );
 
 namespace SugarCommerce\S3;
 
+use SugarCommerce\S3\Signing\SignedRequest;
 use WP_Error;
 
 /**

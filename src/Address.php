@@ -44,7 +44,7 @@ final class Address {
 	 *
 	 * @since 1.0.0
 	 */
-	public const SCHEME = 's3://';
+	public const string SCHEME = 's3://';
 
 	/**
 	 * The host part of whatever was given.

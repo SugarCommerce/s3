@@ -16,8 +16,8 @@ use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use SugarCommerce\S3\AddressingStyle;
 use SugarCommerce\S3\Provider;
+use SugarCommerce\S3\Signing\AddressingStyle;
 
 #[CoversClass( Provider::class )]
 final class ProviderTest extends TestCase {

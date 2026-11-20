@@ -3,9 +3,9 @@ declare( strict_types=1 );
 
 namespace SugarCommerce\S3\Tests;
 
-use SugarCommerce\S3\Validate;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use SugarCommerce\S3\Validate;
 
 /**
  * Bucket name rules.
@@ -70,7 +70,7 @@ final class ValidateTest extends TestCase {
 		foreach ( [ 'downloads', 'my.bucket', 'My-Bucket', 'ab' ] as $bucket ) {
 			$this->assertSame(
 				Validate::dns_label( $bucket ),
-				\SugarCommerce\S3\AddressingStyle::is_dns_compatible( $bucket ),
+				\SugarCommerce\S3\Signing\AddressingStyle::is_dns_compatible( $bucket ),
 				$bucket . ' must not have two rules'
 			);
 		}

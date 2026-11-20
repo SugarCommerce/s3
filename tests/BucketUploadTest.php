@@ -9,11 +9,11 @@ declare( strict_types=1 );
 
 namespace SugarCommerce\S3\Tests;
 
-use SugarCommerce\S3\AddressingStyle;
-use SugarCommerce\S3\Signer;
-use SugarCommerce\S3\Bucket;
-use SugarCommerce\S3\Tests\Support\FakeHttp;
 use PHPUnit\Framework\TestCase;
+use SugarCommerce\S3\Bucket;
+use SugarCommerce\S3\Signer;
+use SugarCommerce\S3\Signing\AddressingStyle;
+use SugarCommerce\S3\Tests\Support\FakeHttp;
 use WP_Error;
 
 /**

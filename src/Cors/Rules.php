@@ -34,7 +34,7 @@ final class Rules {
 	 * Each entry is a partial rule; origins and max-age are filled in by
 	 * generate() so a caller can override them per call.
 	 */
-	private const SCENARIOS = array(
+	private const array SCENARIOS = array(
 		'public_read'      => array(
 			'ID'             => 'PublicRead',
 			'AllowedMethods' => array( 'GET', 'HEAD' ),

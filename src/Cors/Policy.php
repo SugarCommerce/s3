@@ -12,7 +12,7 @@ declare( strict_types=1 );
 
 namespace SugarCommerce\S3\Cors;
 
-use SugarCommerce\S3\Xml;
+use SugarCommerce\S3\Support\Xml;
 
 /**
  * Class Policy
@@ -35,7 +35,7 @@ final readonly class Policy implements \Countable, \IteratorAggregate {
 	/**
 	 * Most providers cap a bucket at 100 rules.
 	 */
-	public const MAX_RULES = 100;
+	public const int MAX_RULES = 100;
 
 	/**
 	 * @since 1.0.0
@@ -419,6 +419,7 @@ final readonly class Policy implements \Countable, \IteratorAggregate {
 	 *
 	 * @return int
 	 */
+	#[\Override]
 	public function count(): int {
 		return count( $this->rules );
 	}
@@ -430,6 +431,7 @@ final readonly class Policy implements \Countable, \IteratorAggregate {
 	 *
 	 * @return \ArrayIterator<int, Rule>
 	 */
+	#[\Override]
 	public function getIterator(): \ArrayIterator {
 		return new \ArrayIterator( $this->rules );
 	}
