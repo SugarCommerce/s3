@@ -30,7 +30,9 @@ final class Xml {
 	 * Parse a document.
 	 *
 	 * LIBXML_NONET: the document is a provider's answer, and nothing in it
-	 * gets to make this process fetch anything else.
+	 * gets to make this process fetch anything else. No S3 answer has a
+	 * document type, so one that does -- entities, internal or external,
+	 * the billion laughs -- is not read at all.
 	 *
 	 * @since 1.0.0
 	 *
@@ -41,7 +43,7 @@ final class Xml {
 	public static function load( string $xml ): ?SimpleXMLElement {
 		$xml = trim( $xml );
 
-		if ( '' === $xml ) {
+		if ( '' === $xml || false !== stripos( $xml, '<!DOCTYPE' ) ) {
 			return null;
 		}
 
