@@ -157,6 +157,17 @@ final class BucketTest extends TestCase {
 		$this->assertFalse( $listing['more'] );
 	}
 
+	/**
+	 * A thousand parts is a few hundred kilobytes. An endpoint that answers
+	 * a part listing with gigabytes is cut off, not read into memory.
+	 */
+	public function test_a_part_listing_is_read_up_to_a_cap(): void {
+		FakeHttp::queue( 200, '<ListPartsResult><IsTruncated>false</IsTruncated></ListPartsResult>' );
+
+		$this->assertSame( array(), $this->bucket()->parts( 'a/b', 'up' ) );
+		$this->assertSame( 8388608, FakeHttp::last()['args']['limit_response_size'] ?? null );
+	}
+
 	public function test_a_long_listing_is_followed_to_the_end(): void {
 		FakeHttp::respond_with(
 			static fn( string $url ) => str_contains( $url, 'part-number-marker=1' )

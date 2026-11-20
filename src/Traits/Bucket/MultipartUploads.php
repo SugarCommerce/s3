@@ -152,7 +152,7 @@ trait MultipartUploads {
 
 		for ( $page = 0; $page < self::PARTS_PAGES; $page++ ) {
 			$request  = $this->signer->sign_list_parts( $this->name, $key, $upload_id, self::PARTS_PAGE, $marker );
-			$response = Transport::request( 'GET', $request->url, $request->headers );
+			$response = Transport::request( 'GET', $request->url, $request->headers, null, array( 'limit_response_size' => 8388608 ) );
 
 			// The 200-with-an-error-document case again: an answer is only a
 			// listing if it says it is one.
