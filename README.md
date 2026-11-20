@@ -466,7 +466,8 @@ record, as an option (not autoloaded) named from the build's prefix, so two
 plugins bundling their own copy never read each other's uploads:
 `sugarcommerce_s3_upload_{id}` unprefixed, `myplugin_sugarcommerce_s3_upload_{id}`
 in a Strauss build prefixed `MyPlugin\`. `Utils\Runtime::key()` gives the
-name; `Runtime::prefix()`, `hook()` and `handle()` follow the family's rule.
+name; `Runtime::prefix()`, `hook()` and `handle()` follow the family's rule,
+which `Utils\Runtime` takes from sugarcommerce/plugin's `Runtime`.
 
 ## Why `Multipart::run()` has no job behind it
 
