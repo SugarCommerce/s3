@@ -13,6 +13,7 @@ declare( strict_types=1 );
 namespace SugarCommerce\S3\Signing;
 
 use InvalidArgumentException;
+use SugarCommerce\Network\Remote\SafeUrl;
 use SugarCommerce\S3\Address;
 use SugarCommerce\S3\Validate;
 
@@ -53,7 +54,7 @@ final class Endpoint {
 			throw new InvalidArgumentException( 'S3 endpoint must be a bare host, e.g. "s3.eu-west-2.amazonaws.com".' );
 		}
 
-		if ( Validate::metadata_host( $host ) ) {
+		if ( SafeUrl::is_metadata_host( $host ) ) {
 			throw new InvalidArgumentException( 'S3 endpoint cannot be a cloud metadata service.' );
 		}
 

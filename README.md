@@ -494,7 +494,7 @@ The classes a plugin uses sit at the top of `src/`: `Provider`, `Signer`,
 ## Security
 
 * Signs and sends nothing a caller did not ask for: no SDK, no redirects followed, and every answer that could be large read only up to a cap
-* Refuses a cloud metadata service as an endpoint (169.254.169.254 in any spelling, metadata.google.internal, 100.100.100.200, 0.0.0.0), so a connection test cannot read back the server's own credentials
+* Refuses a cloud metadata service as an endpoint (169.254.169.254 in any spelling, metadata.google.internal, 100.100.100.200, 0.0.0.0), so a connection test cannot read back the server's own credentials -- the family's one rule, network's `SafeUrl::is_metadata_host()`
 * Reads no provider answer that declares a document type, and fetches nothing an answer names, so entity expansion and external entities never run
 * Keeps the keys out of stack traces (`#[\SensitiveParameter]`) and out of `var_dump()` of a signer or a connection
 * Refuses a header value with a line break, a key or bucket with a `.` or `..` segment, and a byte range that is not one, before anything is signed
@@ -505,7 +505,7 @@ The classes a plugin uses sit at the top of `src/`: `Provider`, `Signer`,
 
 * PHP 8.3 or later
 * WordPress 7.1 or later
-* `sugarcommerce/storage` and `sugarcommerce/plugin`
+* `sugarcommerce/storage`, `sugarcommerce/plugin` and `sugarcommerce/network` (whose `Remote\SafeUrl::is_metadata_host()` is the endpoint check)
 * Credentials for an S3-compatible provider
 
 ## License

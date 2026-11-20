@@ -12,10 +12,18 @@
   ],
   "require": {
     "php": ">=8.3",
+    "sugarcommerce/network": "dev-main",
     "sugarcommerce/plugin": "dev-main",
     "sugarcommerce/storage": "dev-main"
   },
   "repositories": [
+    {
+      "type": "path",
+      "url": "../network",
+      "options": {
+        "symlink": false
+      }
+    },
     {
       "type": "path",
       "url": "../plugin",

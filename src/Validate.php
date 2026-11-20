@@ -129,39 +129,6 @@ final class Validate {
 	}
 
 	/**
-	 * Whether a host is a cloud metadata service, or no address at all.
-	 *
-	 * AWS, Azure, GCP and most others answer on 169.254.169.254 (and the rest
-	 * of 169.254.0.0/16), Google also as metadata.google.internal, Alibaba on
-	 * 100.100.100.200 -- with the server's own credentials. An endpoint there
-	 * turns a connection test into a way to read them back, so it is never
-	 * one. A private-network address is not refused: MinIO on the LAN is a
-	 * real endpoint, and choosing it is the site owner's call.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @param string $host Host, optionally with a port, without a scheme.
-	 *
-	 * @return bool
-	 */
-	public static function metadata_host( string $host ): bool {
-		$host = rtrim( strtolower( (string) preg_replace( '/:\d*$/', '', trim( $host ) ) ), '.' );
-
-		if ( in_array( $host, array( 'metadata.google.internal', 'metadata', '100.100.100.200', '0' ), true ) ) {
-			return true;
-		}
-
-		// A number that is not a dotted quad -- 2852039166, 0xa9fea9fe,
-		// 0251.0376.0251.0376 -- is still an address to the resolver, and
-		// says nothing a real endpoint ever needs to.
-		if ( false === filter_var( $host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 ) ) {
-			return 1 === preg_match( '/^(?:0x[0-9a-f]+|[0-9]+)(?:\.(?:0x[0-9a-f]+|[0-9]+))*$/', $host );
-		}
-
-		return str_starts_with( $host, '169.254.' ) || str_starts_with( $host, '0.' );
-	}
-
-	/**
 	 * Whether a string is a legal HTTP header name.
 	 *
 	 * RFC 7230's token set. A name outside it corrupts the canonical
